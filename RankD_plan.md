@@ -144,18 +144,24 @@ Computed at read time (or cached later): `SUM(MAX(points) per exercise) GROUP BY
 1. **1RM estimation (Epley formula)**, capped at ~10–12 reps for reliability:
    `estimated_1rm_kg = weight_kg × (1 + reps / 30)`
 
-2. **Bodyweight normalization (allometric scaling)** for weighted lifts:
+2. **Bodyweight normalization (allometric scaling)**, applied identically to weighted and bodyweight exercises:
    `relative_ratio = estimated_1rm_kg / bodyweight_kg^0.67`
 
-   For bodyweight exercises (push-ups, pull-ups, dips): treat `bodyweight_kg + added_weight_kg` as the effective load, run through Epley, then express as `estimated_1rm / bodyweight_kg` to get a comparable relative-strength ratio without a separate formula per bodyweight exercise.
+   For bodyweight exercises (push-ups, pull-ups, dips): treat `bodyweight_kg + added_weight_kg` as the effective load, run through Epley, then apply the **same `^0.67` normalization as weighted lifts** to get a comparable relative-strength ratio without a separate formula per bodyweight exercise.
+
+   **Revised from an earlier draft** that divided bodyweight exercises by `bodyweight_kg^1` instead of `^0.67`. That asymmetry meant a bodyweight movement needed roughly 4x the "effort" of a weighted lift to score the same points (worked example: benching exactly bodyweight — unremarkable — outscored 25 clean push-ups — solid), which undermined this app's own beginner-friendliness goal (Section 1). Caught and fixed once the exercise list grew past the original 9-exercise seed and the math was actually run against it.
 
 3. **Points per lift**:
    `points = relative_ratio × exercise.weight_coefficient`
 
 4. **Progression bar (the single cumulative score per user)**:
-   `bar_total = Σ over exercises of MAX(points) ever achieved for that exercise`
+   `bar_total = Σ over muscle groups of AVG(MAX(points) ever achieved, across exercises logged in that muscle group)`
 
-   **Critical rule — PR-based, not cumulative logging volume**: the bar only moves when a *new* log beats the existing best for that specific exercise. A lower or equal lift is still stored (for history) but does not change the bar. This prevents "spam-logging the same weight" from inflating rank.
+   Computed per muscle group (`push` / `pull` / `legs` / `core` / `full_body`, per `exercises.muscle_group` in Section 5), then summed across however many of those (up to 5) groups the user has logged at least one exercise in. A group with zero logged exercises contributes nothing to the sum — it's omitted, not averaged in as a zero.
+
+   **Revised from an earlier draft** that summed points across *every* logged exercise directly, with no per-group averaging. That version scaled with how many exercises a user bothered to log, not how strong they actually were: two lifters with identical squat/bench/deadlift numbers landed in wildly different tiers (Silver vs. blown past Olympian) purely because one of them also logged the other 35 curated exercises. Per-muscle-group averaging keeps `bar_total` anchored to genuine per-group strength — additional exercises in a group only help if they're comparably good to what's already there, and can pull the average *down* if they're weak padding, which naturally discourages spam-logging low-effort accessory lifts just to inflate rank.
+
+   **Critical rule — PR-based, not cumulative logging volume**: within each exercise, only the *best-ever* log counts toward that exercise's `MAX(points)` term feeding into its muscle group's average. A lower or equal lift is still stored (for history) but does not move the average. Combined with the per-group averaging above, this prevents both "spam-logging the same weight" and "spam-logging many different exercises" from inflating rank.
 
 5. **First-time onboarding**: a user's first logged set per exercise becomes their initial best for that exercise — there is no "start everyone at zero" period. Someone with real lifting experience should land at their appropriate tier/rank immediately after entering their bodyweight and current lifts, not have to re-earn it from scratch.
 
@@ -255,6 +261,6 @@ This gives a defensible three-tier coefficient scale rather than an arbitrary on
 
 ## 10. Open Items Still Worth Deciding
 
-- `tier_thresholds` point bands (the actual `min_points` cutoffs for each tier/sub-level) — `weight_coefficient` values are now seeded (Section 6.1), but the tier ladder itself still needs concrete numbers before the seed script is fully runnable
+- `tier_thresholds` point bands are now seeded (`scripts/seed.py`: 16 bands, Bronze 3 → Olympian, `min_points` 0→80) and sanity-checked by hand against beginner/intermediate/advanced/elite reference lifters under the corrected Section 6 formula (per-muscle-group averaging + unified `^0.67` bodyweight scaling) — they hold up reasonably across that range. Still a placeholder pending real usage data, per this section's original framing; revisit once actual users have logged lifts.
 - Whether gym rank eventually gets its own materialized/cached table (same pattern as `weekly_exercise_bests`) once query load justifies it
 - Onboarding UX for entering initial lifts across multiple exercises before a first tier is shown (product/frontend decision, not schema)
