@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: gym-app-backend
+    runtime: python
+    rootDir: gym-app-backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # Runs before traffic is switched to the new deploy - keeps the schema
+    # in sync without a manual `alembic upgrade head` after every push.
+    preDeployCommand: alembic upgrade head
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.0
+      # Dev-only auth bypass, deliberately on for now (frontend has no real
+      # Supabase Google OAuth wired up yet) - config.py hard-fails this
+      # combination when ENV=production, so this only works together.
+      - key: ENV
+        value: development
+      - key: AUTH_DISABLED
+        value: "true"
+      # Set in the Render dashboard, not here - see .env.example for the format.
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
