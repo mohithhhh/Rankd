@@ -26,3 +26,19 @@ class GymOut(BaseModel):
 
 class GymCreatedOut(GymOut):
     join_code: str
+
+
+class GymPreviewOut(BaseModel):
+    """What someone holding a join code may learn about a gym before joining it:
+    enough to show "You're joining X", nothing that identifies members or the
+    gym's id."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+    city: str
+    brand_color: str | None
+
+
+class JoinCodeOut(BaseModel):
+    join_code: str

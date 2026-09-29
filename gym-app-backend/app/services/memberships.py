@@ -3,7 +3,7 @@ import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.infra.db.orm import Gym, Membership
+from app.infra.db.orm import Gym, Membership, MembershipRole
 
 
 def require_membership(db: Session, user_id: uuid.UUID, gym_id: uuid.UUID) -> Membership:
@@ -25,5 +25,15 @@ def require_membership(db: Session, user_id: uuid.UUID, gym_id: uuid.UUID) -> Me
     if membership is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this gym"
+        )
+    return membership
+
+
+def require_gym_admin(db: Session, user_id: uuid.UUID, gym_id: uuid.UUID) -> Membership:
+    """require_membership, plus the caller must hold this gym's admin role."""
+    membership = require_membership(db, user_id, gym_id)
+    if membership.role != MembershipRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Only a gym admin can do this"
         )
     return membership

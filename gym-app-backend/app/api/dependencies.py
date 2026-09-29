@@ -54,3 +54,18 @@ def get_current_user(
         )
 
     return AuthenticatedUser(id=UUID(sub), email=payload.get("email"))
+
+
+def require_platform_admin(
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> AuthenticatedUser:
+    """Gate for operator-only actions (currently: creating gyms). Distinct from a
+    gym's own `admin` membership role, which is scoped to one gym - this is the
+    platform operators (PLATFORM_ADMIN_USER_IDS), so gym creation stays a
+    deliberate onboarding step instead of open to any signed-in user."""
+    if current_user.id not in settings.platform_admin_ids:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only platform admins can create gyms",
+        )
+    return current_user

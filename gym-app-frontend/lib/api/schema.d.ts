@@ -57,6 +57,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gyms/by-code/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Gym By Code
+         * @description Preview the gym a join code belongs to (for the "You're joining X" screen),
+         *     without joining it. Authenticated-only; 8 chars of A-Z0-9 is ~2.8e12 codes.
+         */
+        get: operations["get_gym_by_code_gyms_by_code__code__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gyms/{gym_id}": {
         parameters: {
             query?: never;
@@ -66,6 +87,27 @@ export interface paths {
         };
         /** Get Gym */
         get: operations["get_gym_gyms__gym_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gyms/{gym_id}/join-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Join Code
+         * @description The gym's join code, for printing its QR poster. Gym admins and platform
+         *     admins only - GymOut deliberately omits it so members can't scrape codes.
+         */
+        get: operations["get_join_code_gyms__gym_id__join_code_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -322,10 +364,29 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * GymPreviewOut
+         * @description What someone holding a join code may learn about a gym before joining it:
+         *     enough to show "You're joining X", nothing that identifies members or the
+         *     gym's id.
+         */
+        GymPreviewOut: {
+            /** Name */
+            name: string;
+            /** City */
+            city: string;
+            /** Brand Color */
+            brand_color: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** JoinCodeOut */
+        JoinCodeOut: {
+            /** Join Code */
+            join_code: string;
         };
         /** LoggedSetBulkCreate */
         LoggedSetBulkCreate: {
@@ -704,6 +765,39 @@ export interface operations {
             };
         };
     };
+    get_gym_by_code_gyms_by_code__code__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-dev-user-id"?: string | null;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GymPreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_gym_gyms__gym_id__get: {
         parameters: {
             query?: never;
@@ -724,6 +818,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GymOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_join_code_gyms__gym_id__join_code_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-dev-user-id"?: string | null;
+            };
+            path: {
+                gym_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JoinCodeOut"];
                 };
             };
             /** @description Validation Error */

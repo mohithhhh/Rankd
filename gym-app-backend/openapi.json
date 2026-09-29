@@ -311,6 +311,70 @@
         }
       }
     },
+    "/gyms/by-code/{code}": {
+      "get": {
+        "tags": [
+          "gyms"
+        ],
+        "summary": "Get Gym By Code",
+        "description": "Preview the gym a join code belongs to (for the \"You're joining X\" screen),\nwithout joining it. Authenticated-only; 8 chars of A-Z0-9 is ~2.8e12 codes.",
+        "operationId": "get_gym_by_code_gyms_by_code__code__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Code"
+            }
+          },
+          {
+            "name": "x-dev-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymPreviewOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/gyms/{gym_id}": {
       "get": {
         "tags": [
@@ -358,6 +422,71 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GymOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gyms/{gym_id}/join-code": {
+      "get": {
+        "tags": [
+          "gyms"
+        ],
+        "summary": "Get Join Code",
+        "description": "The gym's join code, for printing its QR poster. Gym admins and platform\nadmins only - GymOut deliberately omits it so members can't scrape codes.",
+        "operationId": "get_join_code_gyms__gym_id__join_code_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "gym_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Gym Id"
+            }
+          },
+          {
+            "name": "x-dev-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinCodeOut"
                 }
               }
             }
@@ -1158,6 +1287,37 @@
         "title": "GymOut",
         "description": "Public shape - deliberately excludes join_code so it can't be looked up\nby anyone who merely knows/guesses a gym's id; it's only handed back once,\nat creation, via GymCreatedOut."
       },
+      "GymPreviewOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "brand_color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand Color"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "city",
+          "brand_color"
+        ],
+        "title": "GymPreviewOut",
+        "description": "What someone holding a join code may learn about a gym before joining it:\nenough to show \"You're joining X\", nothing that identifies members or the\ngym's id."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1170,6 +1330,19 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "JoinCodeOut": {
+        "properties": {
+          "join_code": {
+            "type": "string",
+            "title": "Join Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "join_code"
+        ],
+        "title": "JoinCodeOut"
       },
       "LoggedSetBulkCreate": {
         "properties": {

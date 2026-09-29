@@ -5,6 +5,7 @@ from app.api.dependencies import AuthenticatedUser, get_current_user
 from app.infra.db.orm import Gym, Membership, MembershipRole
 from app.infra.db.session import get_db
 from app.models.membership import MembershipJoinRequest, MembershipOut
+from app.services.gyms import normalize_join_code
 
 router = APIRouter(prefix="/memberships", tags=["memberships"])
 
@@ -15,7 +16,7 @@ def join_gym(
     current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    gym = db.query(Gym).filter(Gym.join_code == body.join_code).first()
+    gym = db.query(Gym).filter(Gym.join_code == normalize_join_code(body.join_code)).first()
     if gym is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid join code")
 

@@ -23,5 +23,12 @@ services:
       # Set in the Render dashboard, not here - see .env.example for the format.
       - key: DATABASE_URL
         sync: false
+      # Comma-separated Supabase user ids allowed to create gyms (POST /gyms).
+      - key: PLATFORM_ADMIN_USER_IDS
+        sync: false
+      # Public project URL - the JWKS for verifying ES256 tokens is fetched from it.
+      - key: SUPABASE_URL
+        sync: false
+      # Optional legacy HS256 secret; delete once the legacy key is revoked.
       - key: SUPABASE_JWT_SECRET
         sync: false

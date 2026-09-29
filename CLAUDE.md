@@ -14,7 +14,7 @@ All commands run from `gym-app-backend/`. No `pyproject.toml` — dependencies a
 uv venv && source .venv/bin/activate
 uv pip install -r requirements.txt
 
-cp .env.example .env   # fill in DATABASE_URL (Supabase Session Pooler) + SUPABASE_JWT_SECRET
+cp .env.example .env   # fill in DATABASE_URL (Supabase Session Pooler) + SUPABASE_URL
 
 uvicorn app.main:app --reload   # serves /docs (Swagger) and /health
 
@@ -27,15 +27,16 @@ alembic upgrade head
 
 python scripts/seed.py                 # seeds exercises + tier_thresholds
 python scripts/refresh_weekly_bests.py # manual trigger for weekly_exercise_bests (no scheduler yet)
+python scripts/create_gym.py --name "Iron Temple" --city Pune [--admin-user-id <uuid>] [--app-url <frontend url>]   # operator-only gym onboarding; prints the join code. Writes to whatever DATABASE_URL points at (the shared Supabase project).
 ```
 
 Set `AUTH_DISABLED=true` in `.env` for local dev without real Supabase tokens (hard-fails at startup if `ENV=production`; see `app/config.py`). With it set, pass header `X-Dev-User-Id: <uuid>` to impersonate different fake users.
 
 ## Architecture
 
-**Auth**: Supabase issues HS256 JWTs (Google OAuth is the sign-in UX, Supabase is the sole token issuer). The backend does pure local signature verification against `SUPABASE_JWT_SECRET` (`app/infra/auth.py`) — no per-request call to Supabase. The `sub` claim *is* `users.id` directly, no separate internal ID layer. `app/api/dependencies.py::get_current_user` is the single auth entry point every router depends on.
+**Auth**: Supabase issues the JWTs (Google OAuth is the sign-in UX, Supabase is the sole token issuer). The project signs with an asymmetric **ES256** key, so the backend verifies against Supabase's public JWKS (`<SUPABASE_URL>/auth/v1/.well-known/jwks.json`, cached in-process) — no per-request call to Supabase. HS256 against the legacy `SUPABASE_JWT_SECRET` is still accepted only while that env var is set (`app/infra/auth.py`); unset it once the legacy key is revoked. The `sub` claim *is* `users.id` directly, no separate internal ID layer. `app/api/dependencies.py::get_current_user` is the single auth entry point every router depends on.
 
-**RLS is intentionally off.** FastAPI is the sole gatekeeper to Postgres — this deviates from the usual Supabase pattern (client SDK talking to Postgres directly under row-level policies). Authorization is enforced entirely in the API layer: `app/services/memberships.py::require_membership` is the one place "is this user allowed to touch this gym's data" is checked, and every gym-scoped write/read routes through it. When adding a new gym-scoped endpoint, call it rather than re-deriving the check.
+**RLS is intentionally off.** FastAPI is the sole gatekeeper to Postgres — this deviates from the usual Supabase pattern (client SDK talking to Postgres directly under row-level policies). Authorization is enforced entirely in the API layer: `app/services/memberships.py::require_membership` is the one place "is this user allowed to touch this gym's data" is checked, and every gym-scoped write/read routes through it. When adding a new gym-scoped endpoint, call it rather than re-deriving the check. Gym *creation* is a separate, platform-level gate: `POST /gyms` depends on `app/api/dependencies.py::require_platform_admin` (allowlist in `PLATFORM_ADMIN_USER_IDS`, empty = nobody), not on any gym membership — gyms are onboarded by the RankD team, and users only ever join one by code/QR. The frontend has no create-gym UI; don't add one without changing that rule.
 
 **Scoring engine (`app/services/scoring.py`) is pure functions — no FastAPI, no DB session, no ORM types beyond the `ExerciseType`/`MuscleGroup` enums.** This isolation is deliberate: it's the one module where a silent bug corrupts every tier and leaderboard downstream, since nothing here is cached — tier and gym rank are always recomputed from `logged_sets` at read time. Formula chain per logged set: Epley 1RM estimate (reps capped at 12) → allometric bodyweight normalization (`^0.67`, applied identically to weighted *and* bodyweight exercises — see plan Section 6 for why an earlier `^1` version was wrong) → `points = relative_ratio × exercise.weight_coefficient`. The per-user `bar_total` (`compute_bar_total`) is *not* a flat sum of points: it's the sum, across muscle groups, of the average of each exercise's best-ever points in that group — a muscle group the user hasn't touched contributes nothing (not zero). This is what makes rank PR-based and resistant to spam-logging; don't reintroduce a flat sum.
 

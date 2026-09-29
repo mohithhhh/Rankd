@@ -23,42 +23,22 @@ export async function joinGymAction(
     .toUpperCase();
   if (!joinCode) return { error: "Enter a join code." };
 
-  const { error, response } = await api.POST("/memberships/join", {
+  const { data, error, response } = await api.POST("/memberships/join", {
     body: { join_code: joinCode },
   });
+
+  // A fresh join goes to the starter-lifts step so the first screen is a real tier.
+  if (response.ok && data) {
+    redirect(`/starter-lifts?gymId=${data.gym_id}`);
+  }
 
   // 409 means the desired end state already holds (you're a member) - not a
   // failure. Without this, a double-submit (or a stale page after joining
   // successfully once) shows a scary error instead of just continuing on.
-  if (response.ok || response.status === 409) {
+  if (response.status === 409) {
     redirect("/dashboard");
   }
 
   const fallback = response.status === 404 ? "Invalid join code." : "Something went wrong.";
   return { error: describeError(error, fallback) };
-}
-
-export type CreateGymState =
-  | { error: string }
-  | { success: true; gymName: string; joinCode: string }
-  | undefined;
-
-export async function createGymAction(
-  _prevState: CreateGymState,
-  formData: FormData,
-): Promise<CreateGymState> {
-  const name = String(formData.get("name") ?? "").trim();
-  const city = String(formData.get("city") ?? "").trim();
-  if (!name) return { error: "Enter a gym name." };
-  if (!city) return { error: "Enter a city." };
-
-  const { data, error, response } = await api.POST("/gyms", {
-    body: { name, city },
-  });
-
-  if (!response.ok || !data) {
-    return { error: describeError(error, "Something went wrong.") };
-  }
-
-  return { success: true, gymName: data.name, joinCode: data.join_code };
 }
