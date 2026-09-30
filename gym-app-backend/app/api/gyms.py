@@ -40,13 +40,13 @@ def create_gym(
 
 
 @router.get("/by-code/{code}", response_model=GymPreviewOut)
-def get_gym_by_code(
-    code: str,
-    _current_user: AuthenticatedUser = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Preview the gym a join code belongs to (for the "You're joining X" screen),
-    without joining it. Authenticated-only; 8 chars of A-Z0-9 is ~2.8e12 codes."""
+def get_gym_by_code(code: str, db: Session = Depends(get_db)):
+    """Preview the gym a join code belongs to (for the "You're joining X" screen
+    before/without signing in) - deliberately public, unlike every other gym
+    endpoint. A QR scan happens before login, so this can't require a token;
+    it only leaks non-sensitive marketing info (name/city/color, not the gym's
+    id), same spirit as the public leaderboard page in the plan's Section 9.
+    8 chars of A-Z0-9 is ~2.8e12 codes, so brute-forcing one is impractical."""
     gym = db.query(Gym).filter(Gym.join_code == normalize_join_code(code)).first()
     if gym is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid join code")

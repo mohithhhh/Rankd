@@ -3,12 +3,16 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { getSupabaseBrowserClient } from "@/lib/auth/supabase-browser";
+import { stashPendingJoinCode } from "@/lib/auth/pending-join";
 
-export function GoogleLoginButton() {
+export function GoogleLoginButton({ joinCode }: { joinCode?: string }) {
   const [loading, setLoading] = useState(false);
 
   async function handleClick() {
     setLoading(true);
+    // Must happen before the redirect - nothing in this component's state
+    // survives the round trip through Google and back.
+    if (joinCode) await stashPendingJoinCode(joinCode);
     const supabase = getSupabaseBrowserClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",

@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { devLoginAction, type DevLoginState } from "./actions";
 
-export function DevLoginForm({ defaultUserId }: { defaultUserId: string }) {
+export function DevLoginForm({
+  defaultUserId,
+  joinCode,
+}: {
+  defaultUserId: string;
+  joinCode?: string;
+}) {
   const [state, action, pending] = useActionState<DevLoginState, FormData>(
     devLoginAction,
     undefined,
@@ -14,6 +20,7 @@ export function DevLoginForm({ defaultUserId }: { defaultUserId: string }) {
 
   return (
     <form action={action} className="flex flex-col gap-4">
+      {joinCode && <input type="hidden" name="join_code" value={joinCode} />}
       <div className="flex flex-col gap-2">
         <Label htmlFor="user_id">Dev user id</Label>
         <Input id="user_id" name="user_id" defaultValue={defaultUserId} />

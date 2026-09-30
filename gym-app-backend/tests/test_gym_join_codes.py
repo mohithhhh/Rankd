@@ -63,7 +63,9 @@ def test_by_code_returns_only_a_public_preview(api):
     response = client.get(f"/gyms/by-code/{CODE}")
 
     assert response.status_code == 200
-    assert response.json() == {"name": "Iron Temple", "city": "Pune", "brand_color": "#3d5a80"}
+    assert response.json() == {
+        "id": str(GYM_ID), "name": "Iron Temple", "city": "Pune", "brand_color": "#3d5a80",
+    }
 
 
 def test_by_code_looks_up_the_normalized_code(api):
@@ -82,11 +84,19 @@ def test_by_code_unknown_code_is_404(api):
     assert client.get("/gyms/by-code/NOPE0000").status_code == 404
 
 
-def test_by_code_requires_authentication(monkeypatch):
-    app.dependency_overrides[get_db] = lambda: MagicMock()
-    monkeypatch.setattr(settings, "auth_disabled", False)
+def test_by_code_works_without_authentication():
+    """Deliberately public - a QR scan happens before login (see the endpoint's
+    docstring). No get_current_user override, no Authorization header, and
+    auth_disabled is untouched, so a 401 here would mean the route regressed
+    back to requiring a token."""
+    db = MagicMock()
+    db.query.return_value.filter.return_value.first.return_value = _gym()
+    app.dependency_overrides[get_db] = lambda: db
     try:
-        assert TestClient(app).get(f"/gyms/by-code/{CODE}").status_code == 401
+        response = TestClient(app).get(f"/gyms/by-code/{CODE}")
+        assert response.status_code == 200
+        assert response.json()["id"] == str(GYM_ID)
+        assert response.json()["name"] == "Iron Temple"
     finally:
         app.dependency_overrides.clear()
 
@@ -95,7 +105,9 @@ def test_by_code_is_not_shadowed_by_the_gym_id_route(api):
     """/gyms/by-code/X must reach the preview, not be parsed as /gyms/{gym_id}."""
     client, db = api
     db.query.return_value.filter.return_value.first.return_value = _gym()
-    assert client.get(f"/gyms/by-code/{CODE}").status_code != 422
+    response = client.get(f"/gyms/by-code/{CODE}")
+    assert response.status_code == 200
+    assert response.json()["id"] == str(GYM_ID)
 
 
 # --- POST /memberships/join uses the same normalization -----------------------------

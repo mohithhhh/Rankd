@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { logSetAction, type LogSetState } from "@/app/(app)/log/actions";
+import { MAX_REPS, MAX_WEIGHT_KG } from "@/lib/starter-lifts";
 import type { components } from "@/lib/api/schema";
 
 type ExerciseOut = components["schemas"]["ExerciseOut"];
@@ -113,18 +114,33 @@ export function LogLiftForm({ gymId, exercises }: { gymId: string; exercises: Ex
           {selectedExercise.type === "weighted" ? (
             <div className="flex flex-col gap-2">
               <Label htmlFor="weight_kg">Weight (kg)</Label>
-              <Input id="weight_kg" name="weight_kg" type="number" step="0.1" min="0" required />
+              <Input
+                id="weight_kg"
+                name="weight_kg"
+                type="number"
+                step="0.1"
+                min="0"
+                max={MAX_WEIGHT_KG}
+                required
+              />
             </div>
           ) : (
             <div className="flex flex-col gap-2">
               <Label htmlFor="added_weight_kg">Added weight (kg, optional)</Label>
-              <Input id="added_weight_kg" name="added_weight_kg" type="number" step="0.1" min="0" />
+              <Input
+                id="added_weight_kg"
+                name="added_weight_kg"
+                type="number"
+                step="0.1"
+                min="0"
+                max={MAX_WEIGHT_KG}
+              />
             </div>
           )}
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="reps">Reps</Label>
-            <Input id="reps" name="reps" type="number" min="1" required />
+            <Input id="reps" name="reps" type="number" min="1" max={MAX_REPS} required />
           </div>
 
           {state && "error" in state && <p className="text-sm text-destructive">{state.error}</p>}

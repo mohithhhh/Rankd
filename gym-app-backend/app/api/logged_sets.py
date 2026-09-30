@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import AuthenticatedUser, get_current_user
@@ -9,11 +9,17 @@ from app.infra.db.session import get_db
 from app.models.logged_set import LoggedSetBulkCreate, LoggedSetCreate, LoggedSetOut
 from app.services.memberships import require_membership
 from app.services.scoring import score_logged_set
+from app.services.weekly_bests import refresh_weekly_bests_in_new_session
 
 router = APIRouter(prefix="/logged-sets", tags=["logged-sets"])
 
 
-def _create_one(db: Session, user_id: uuid.UUID, item: LoggedSetCreate) -> LoggedSet:
+def _create_one(
+    db: Session,
+    user_id: uuid.UUID,
+    item: LoggedSetCreate,
+    background_tasks: BackgroundTasks,
+) -> LoggedSet:
     # Idempotent replay: a retried request from a flaky connection returns the
     # already-created row instead of erroring or duplicating it.
     existing = (
@@ -64,25 +70,38 @@ def _create_one(db: Session, user_id: uuid.UUID, item: LoggedSetCreate) -> Logge
     db.add(logged_set)
     db.commit()
     db.refresh(logged_set)
+
+    if exercise.weekly_eligible:
+        # Keeps the Weekly Champion board live without a scheduler - refresh
+        # right after a scoring SBD set is written, instead of a cron job
+        # (see scripts/refresh_weekly_bests.py). Runs in its own DB session
+        # after the response is sent, so it can't slow this request or touch
+        # a session this request has already closed. Safe to trigger more
+        # than once per request (e.g. several SBD sets in one bulk call) -
+        # each run is a full, idempotent recompute for the current week.
+        background_tasks.add_task(refresh_weekly_bests_in_new_session)
+
     return logged_set
 
 
 @router.post("", response_model=LoggedSetOut, status_code=status.HTTP_201_CREATED)
 def create_logged_set(
     body: LoggedSetCreate,
+    background_tasks: BackgroundTasks,
     current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return _create_one(db, current_user.id, body)
+    return _create_one(db, current_user.id, body, background_tasks)
 
 
 @router.post("/bulk", response_model=list[LoggedSetOut], status_code=status.HTTP_201_CREATED)
 def create_logged_sets_bulk(
     body: LoggedSetBulkCreate,
+    background_tasks: BackgroundTasks,
     current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return [_create_one(db, current_user.id, item) for item in body.items]
+    return [_create_one(db, current_user.id, item, background_tasks) for item in body.items]
 
 
 @router.get("/me", response_model=list[LoggedSetOut])

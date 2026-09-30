@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { api } from "@/lib/api/client";
+import { getPendingJoinCode } from "@/lib/auth/pending-join";
 import type { components } from "@/lib/api/schema";
 
 export type OnboardingState = { error?: string } | undefined;
@@ -37,5 +38,6 @@ export async function createProfileAction(
     return { error: describeError(error) };
   }
 
-  redirect("/gyms/join");
+  const pendingJoinCode = await getPendingJoinCode();
+  redirect(pendingJoinCode ? `/join/${pendingJoinCode}` : "/gyms/join");
 }

@@ -66,8 +66,12 @@ export interface paths {
         };
         /**
          * Get Gym By Code
-         * @description Preview the gym a join code belongs to (for the "You're joining X" screen),
-         *     without joining it. Authenticated-only; 8 chars of A-Z0-9 is ~2.8e12 codes.
+         * @description Preview the gym a join code belongs to (for the "You're joining X" screen
+         *     before/without signing in) - deliberately public, unlike every other gym
+         *     endpoint. A QR scan happens before login, so this can't require a token;
+         *     it only leaks non-sensitive marketing info (name/city/color, not the gym's
+         *     id), same spirit as the public leaderboard page in the plan's Section 9.
+         *     8 chars of A-Z0-9 is ~2.8e12 codes, so brute-forcing one is impractical.
          */
         get: operations["get_gym_by_code_gyms_by_code__code__get"];
         put?: never;
@@ -366,11 +370,19 @@ export interface components {
         };
         /**
          * GymPreviewOut
-         * @description What someone holding a join code may learn about a gym before joining it:
-         *     enough to show "You're joining X", nothing that identifies members or the
-         *     gym's id.
+         * @description What someone holding a join code may learn about a gym before joining it,
+         *     signed in or not: enough to show "You're joining X" and, once signed in, to
+         *     check existing membership and redirect after joining. The gym's id is a
+         *     UUID primary key, not a capability - every gym-scoped read/write still
+         *     goes through require_membership regardless of who knows it - so unlike
+         *     join_code (the actual secret), there's no reason to withhold it here.
          */
         GymPreviewOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
             /** Name */
             name: string;
             /** City */
@@ -768,9 +780,7 @@ export interface operations {
     get_gym_by_code_gyms_by_code__code__get: {
         parameters: {
             query?: never;
-            header?: {
-                "x-dev-user-id"?: string | null;
-            };
+            header?: never;
             path: {
                 code: string;
             };

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { hasSession } from "@/lib/auth/session";
 import { getMyProfile, getMyMemberships } from "@/lib/api/resources";
+import { getPendingJoinCode } from "@/lib/auth/pending-join";
 import { JoinGymForm } from "@/components/rankd/join-gym-form";
 
 // Fallback for anyone who didn't arrive via their gym's QR code. Gyms are
@@ -10,6 +11,12 @@ import { JoinGymForm } from "@/components/rankd/join-gym-form";
 export default async function JoinGymPage() {
   if (!(await hasSession())) redirect("/login");
   if ((await getMyProfile()) === null) redirect("/onboarding");
+
+  // A code from a scanned QR takes priority over typing one in by hand -
+  // covers landing here directly (bookmark, back button) mid-QR-flow.
+  const pendingJoinCode = await getPendingJoinCode();
+  if (pendingJoinCode) redirect(`/join/${pendingJoinCode}`);
+
   if ((await getMyMemberships()).length > 0) redirect("/dashboard");
 
   return (

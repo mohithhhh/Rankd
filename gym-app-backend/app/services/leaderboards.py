@@ -30,8 +30,12 @@ def get_gym_leaderboard(db: Session, gym_id: uuid.UUID) -> list[GymLeaderboardEn
     entries = []
     for rank, (user_id, bar_total) in enumerate(top_n, start=1):
         user = db.get(User, user_id)
-        # Standard percentile-rank: share of the field this user outranks.
-        percentile = 100 * (total - rank) / total if total else 0.0
+        # (total - rank + 1) so rank 1 reads ~100th percentile (top of the
+        # field) and the last rank reads 100/total - never a literal 0th, even
+        # for a gym's lone ranked member. The plain (total - rank)/total
+        # version gave a solo member 0th pct, which reads as "worst" on the
+        # one screen meant to be the app's core hook.
+        percentile = 100 * (total - rank + 1) / total if total else 0.0
         entries.append(
             GymLeaderboardEntry(
                 rank=rank,

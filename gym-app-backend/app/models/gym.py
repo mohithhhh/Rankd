@@ -29,12 +29,16 @@ class GymCreatedOut(GymOut):
 
 
 class GymPreviewOut(BaseModel):
-    """What someone holding a join code may learn about a gym before joining it:
-    enough to show "You're joining X", nothing that identifies members or the
-    gym's id."""
+    """What someone holding a join code may learn about a gym before joining it,
+    signed in or not: enough to show "You're joining X" and, once signed in, to
+    check existing membership and redirect after joining. The gym's id is a
+    UUID primary key, not a capability - every gym-scoped read/write still
+    goes through require_membership regardless of who knows it - so unlike
+    join_code (the actual secret), there's no reason to withhold it here."""
 
     model_config = ConfigDict(from_attributes=True)
 
+    id: uuid.UUID
     name: str
     city: str
     brand_color: str | None

@@ -317,13 +317,8 @@
           "gyms"
         ],
         "summary": "Get Gym By Code",
-        "description": "Preview the gym a join code belongs to (for the \"You're joining X\" screen),\nwithout joining it. Authenticated-only; 8 chars of A-Z0-9 is ~2.8e12 codes.",
+        "description": "Preview the gym a join code belongs to (for the \"You're joining X\" screen\nbefore/without signing in) - deliberately public, unlike every other gym\nendpoint. A QR scan happens before login, so this can't require a token;\nit only leaks non-sensitive marketing info (name/city/color, not the gym's\nid), same spirit as the public leaderboard page in the plan's Section 9.\n8 chars of A-Z0-9 is ~2.8e12 codes, so brute-forcing one is impractical.",
         "operationId": "get_gym_by_code_gyms_by_code__code__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "parameters": [
           {
             "name": "code",
@@ -332,22 +327,6 @@
             "schema": {
               "type": "string",
               "title": "Code"
-            }
-          },
-          {
-            "name": "x-dev-user-id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Dev-User-Id"
             }
           }
         ],
@@ -1289,6 +1268,11 @@
       },
       "GymPreviewOut": {
         "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
           "name": {
             "type": "string",
             "title": "Name"
@@ -1311,12 +1295,13 @@
         },
         "type": "object",
         "required": [
+          "id",
           "name",
           "city",
           "brand_color"
         ],
         "title": "GymPreviewOut",
-        "description": "What someone holding a join code may learn about a gym before joining it:\nenough to show \"You're joining X\", nothing that identifies members or the\ngym's id."
+        "description": "What someone holding a join code may learn about a gym before joining it,\nsigned in or not: enough to show \"You're joining X\" and, once signed in, to\ncheck existing membership and redirect after joining. The gym's id is a\nUUID primary key, not a capability - every gym-scoped read/write still\ngoes through require_membership regardless of who knows it - so unlike\njoin_code (the actual secret), there's no reason to withhold it here."
       },
       "HTTPValidationError": {
         "properties": {
@@ -1374,11 +1359,13 @@
           },
           "weight_kg": {
             "type": "number",
+            "maximum": 500.0,
             "minimum": 0.0,
             "title": "Weight Kg"
           },
           "reps": {
             "type": "integer",
+            "maximum": 50.0,
             "exclusiveMinimum": 0.0,
             "title": "Reps"
           },
@@ -1386,6 +1373,7 @@
             "anyOf": [
               {
                 "type": "number",
+                "maximum": 500.0,
                 "minimum": 0.0
               },
               {

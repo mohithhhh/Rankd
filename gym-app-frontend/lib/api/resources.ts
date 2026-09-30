@@ -24,3 +24,13 @@ export async function getGymWithId(gymId: string) {
   if (response.status === 404) return null;
   return data ?? null;
 }
+
+/** GET /gyms/by-code is deliberately unauthenticated (a QR scan happens before
+ * login) - this works the same whether the viewer is signed in or not. */
+export async function getGymByCode(code: string) {
+  const { data, response } = await api.GET("/gyms/by-code/{code}", {
+    params: { path: { code } },
+  });
+  if (response.status === 404) return null;
+  return data ?? null;
+}
