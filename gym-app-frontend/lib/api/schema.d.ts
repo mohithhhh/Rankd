@@ -210,6 +210,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tiers/thresholds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Tier Thresholds
+         * @description The global ladder, lowest band first - lets clients draw progress toward
+         *     the next sub-level and badge leaderboard rows without hardcoding seed.py's
+         *     bands (which are still placeholders pending real usage data).
+         */
+        get: operations["list_tier_thresholds_tiers_thresholds_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -282,29 +304,12 @@ export interface components {
             /** Join Code */
             join_code: string;
         };
-        /** GymLeaderboardEntry */
-        GymLeaderboardEntry: {
-            /** Rank */
-            rank: number;
-            /** Percentile */
-            percentile: number;
-            /**
-             * User Id
-             * Format: uuid
-             */
-            user_id: string;
-            /** Username */
-            username: string;
-            /** Bar Total */
-            bar_total: number;
-        };
         /**
-         * GymOut
-         * @description Public shape - deliberately excludes join_code so it can't be looked up
-         *     by anyone who merely knows/guesses a gym's id; it's only handed back once,
-         *     at creation, via GymCreatedOut.
+         * GymDetailOut
+         * @description GET /gyms/{id} shape - join_code is filled in only for that gym's
+         *     admins, so they can re-share it after creation; null for everyone else.
          */
-        GymOut: {
+        GymDetailOut: {
             /**
              * Id
              * Format: uuid
@@ -321,6 +326,24 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Join Code */
+            join_code?: string | null;
+        };
+        /** GymLeaderboardEntry */
+        GymLeaderboardEntry: {
+            /** Rank */
+            rank: number;
+            /** Percentile */
+            percentile: number;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Username */
+            username: string;
+            /** Bar Total */
+            bar_total: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -458,6 +481,14 @@ export interface components {
         TierOut: {
             /** Bar Total */
             bar_total: number;
+            tier: components["schemas"]["Tier"];
+            /** Sub Level */
+            sub_level: number;
+        };
+        /** TierThresholdOut */
+        TierThresholdOut: {
+            /** Min Points */
+            min_points: number;
             tier: components["schemas"]["Tier"];
             /** Sub Level */
             sub_level: number;
@@ -723,7 +754,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GymOut"];
+                    "application/json": components["schemas"]["GymDetailOut"];
                 };
             };
             /** @description Validation Error */
@@ -994,6 +1025,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoggedSetOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_tier_thresholds_tiers_thresholds_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-dev-user-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TierThresholdOut"][];
                 };
             };
             /** @description Validation Error */

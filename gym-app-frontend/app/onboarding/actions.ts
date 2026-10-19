@@ -2,18 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { api } from "@/lib/api/client";
+import { describeError } from "@/lib/api/errors";
 import type { components } from "@/lib/api/schema";
 
 export type OnboardingState = { error?: string } | undefined;
-
-function describeError(error: unknown): string {
-  const detail = (error as { detail?: unknown } | undefined)?.detail;
-  if (typeof detail === "string") return detail;
-  if (Array.isArray(detail)) {
-    return detail.map((d) => (d as { msg?: string }).msg).filter(Boolean).join(", ");
-  }
-  return "Something went wrong. Please try again.";
-}
 
 export async function createProfileAction(
   _prevState: OnboardingState,
@@ -34,7 +26,7 @@ export async function createProfileAction(
   });
 
   if (!response.ok) {
-    return { error: describeError(error) };
+    return { error: describeError(error, "Couldn't save your profile. Try again.") };
   }
 
   redirect("/gyms/join");

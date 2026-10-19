@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EmptyState } from "@/components/rankd/empty-state";
+import { cn } from "@/lib/utils";
 import { api } from "@/lib/api/client";
+import { kg } from "@/lib/format";
 import type { components } from "@/lib/api/schema";
 
 type ExerciseOut = components["schemas"]["ExerciseOut"];
 
-export async function WeeklyChampionCard({
+/** One tile per weekly-eligible lift (the SBD three), showing who holds it. */
+export async function WeeklyChampions({
   gymId,
   exercises,
   currentUserId,
@@ -26,48 +27,40 @@ export async function WeeklyChampionCard({
     }),
   );
 
-  const anyLeader = leaders.some((l) => l.leader !== null);
-
   return (
-    <Card className="border-border/80">
-      <CardHeader>
-        <CardTitle className="text-sm font-medium text-muted uppercase tracking-wide">
-          Weekly champion
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {!anyLeader ? (
-          <EmptyState message="No SBD lifts logged at this gym yet this week." />
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {leaders
-              .filter((l) => l.leader !== null)
-              .map(({ exercise, leader }) => (
-                <li key={exercise.id} className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium">{exercise.name}</p>
-                    <p
-                      className={
-                        leader!.user_id === currentUserId
-                          ? "text-sm font-semibold text-accent"
-                          : "text-sm text-muted"
-                      }
-                    >
-                      {leader!.username}
-                      {leader!.user_id === currentUserId && " (you)"}
-                    </p>
-                  </div>
-                  <Link
-                    href={`/gyms/${gymId}/exercises/${exercise.id}/weekly`}
-                    className="tabular-nums text-sm font-medium text-primary hover:underline"
-                  >
-                    {leader!.weight_kg.toFixed(1)} kg
-                  </Link>
-                </li>
-              ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+    <ul className="grid grid-cols-3 gap-2">
+      {leaders.map(({ exercise, leader }) => {
+        const isYou = leader?.user_id === currentUserId;
+        return (
+          <li key={exercise.id}>
+            <Link
+              href={`/gyms/${gymId}/exercises/${exercise.id}/weekly`}
+              className={cn(
+                "flex h-full flex-col gap-3 rounded-2xl bg-surface p-3 ring-1 ring-border transition-colors hover:ring-sky/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                isYou && "ring-ember/50",
+              )}
+            >
+              <span className="text-xs text-muted-foreground">{exercise.name}</span>
+              {leader ? (
+                <>
+                  <span className="font-display text-3xl leading-none font-bold tabular-nums">
+                    {kg(leader.weight_kg)}
+                    <span className="ml-0.5 text-base font-semibold text-muted-foreground">kg</span>
+                  </span>
+                  <span className={cn("truncate text-sm", isYou ? "font-medium text-ember" : "text-tint")}>
+                    {isYou ? "You" : leader.username}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="font-display text-3xl leading-none font-bold text-faint">Open</span>
+                  <span className="text-sm text-muted-foreground">Nobody yet</span>
+                </>
+              )}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

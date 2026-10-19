@@ -2,15 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { api } from "@/lib/api/client";
-
-function describeError(error: unknown, fallback: string): string {
-  const detail = (error as { detail?: unknown } | undefined)?.detail;
-  if (typeof detail === "string") return detail;
-  if (Array.isArray(detail)) {
-    return detail.map((d) => (d as { msg?: string }).msg).filter(Boolean).join(", ") || fallback;
-  }
-  return fallback;
-}
+import { describeError } from "@/lib/api/errors";
 
 export type JoinGymState = { error?: string } | undefined;
 

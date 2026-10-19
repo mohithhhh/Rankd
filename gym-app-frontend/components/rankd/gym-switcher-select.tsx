@@ -18,8 +18,8 @@ export function GymSwitcherSelect({
     <select
       value={activeGymId}
       onChange={(e) => router.push(hrefTemplate.replace("GYM_ID", e.target.value))}
-      className="rounded-md border border-border bg-surface px-2 py-1 text-sm"
-      aria-label="Active gym"
+      className="h-9 max-w-40 shrink-0 rounded-full border border-input bg-surface px-3 text-sm"
+      aria-label="Switch gym"
     >
       {gyms.map((gym) => (
         <option key={gym.id} value={gym.id}>

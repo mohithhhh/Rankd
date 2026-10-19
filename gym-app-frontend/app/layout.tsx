@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Big_Shoulders, Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -13,20 +13,33 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Chicago gym-poster condensed face, for tier names and big numbers only.
+const bigShoulders = Big_Shoulders({
+  variable: "--font-big-shoulders",
+  subsets: ["latin"],
+  // next/font has no metrics for this family; fall back to a condensed system face.
+  adjustFontFallback: false,
+  fallback: ["Impact", "Arial Narrow", "sans-serif"],
+});
+
 export const metadata: Metadata = {
   title: "RankD",
-  description: "Local gym strength ranking",
+  description: "Strength rankings for your gym",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#161b24",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${bigShoulders.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col">
         {children}
-        <Toaster />
+        <Toaster theme="dark" position="top-center" />
       </body>
     </html>
   );

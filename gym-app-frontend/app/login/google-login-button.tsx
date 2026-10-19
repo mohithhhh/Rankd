@@ -19,7 +19,7 @@ export function GoogleLoginButton() {
   }
 
   return (
-    <Button onClick={handleClick} disabled={loading} className="w-full">
+    <Button onClick={handleClick} disabled={loading} size="xl" className="w-full">
       {loading ? "Redirecting…" : "Continue with Google"}
     </Button>
   );
