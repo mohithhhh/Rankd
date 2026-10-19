@@ -1,41 +1,47 @@
 import { requireOnboardedUser } from "@/lib/auth/require-onboarded-user";
-import { api } from "@/lib/api/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GymSwitcher } from "@/components/rankd/gym-switcher";
-import { LogLiftForm } from "@/components/rankd/log-lift-form";
+import { getExercises, getGymWithId, getMyLoggedSets, getTierThresholds } from "@/lib/api/resources";
+import { bestPointsByExercise } from "@/lib/format";
+import { LogSession, type LastSet } from "./log-session";
 
 export default async function LogPage({
   searchParams,
 }: {
   searchParams: Promise<{ gymId?: string }>;
 }) {
-  const { memberships } = await requireOnboardedUser();
+  const { user, memberships } = await requireOnboardedUser();
   const { gymId } = await searchParams;
-  const activeGymId = gymId ?? memberships[0].gym_id;
 
-  const { data: exercises } = await api.GET("/exercises");
+  const [exercises, sets, ladder, gyms] = await Promise.all([
+    getExercises(),
+    getMyLoggedSets(),
+    getTierThresholds(),
+    Promise.all(
+      memberships.map(async (m) => ({
+        id: m.gym_id,
+        name: (await getGymWithId(m.gym_id))?.name ?? "Unknown gym",
+      })),
+    ),
+  ]);
+
+  // /logged-sets/me is newest first, so the first hit per exercise is the last set.
+  const lastSets: Record<string, LastSet> = {};
+  for (const set of sets) {
+    lastSets[set.exercise_id] ??= {
+      weightKg: set.weight_kg,
+      reps: set.reps,
+      addedWeightKg: set.added_weight_kg,
+    };
+  }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Log a lift</h1>
-        <GymSwitcher
-          memberships={memberships}
-          activeGymId={activeGymId}
-          hrefTemplate="/log?gymId=GYM_ID"
-        />
-      </div>
-
-      <Card className="border-border/80">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium text-muted uppercase tracking-wide">
-            What are you training today?
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <LogLiftForm gymId={activeGymId} exercises={exercises ?? []} />
-        </CardContent>
-      </Card>
-    </div>
+    <LogSession
+      gyms={gyms}
+      initialGymId={gyms.find((g) => g.id === gymId)?.id ?? gyms[0].id}
+      exercises={exercises}
+      bestPoints={Object.fromEntries(bestPointsByExercise(sets))}
+      lastSets={lastSets}
+      ladder={ladder}
+      bodyweightKg={user.bodyweight_kg}
+    />
   );
 }

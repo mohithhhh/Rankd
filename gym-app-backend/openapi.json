@@ -357,7 +357,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GymOut"
+                  "$ref": "#/components/schemas/GymDetailOut"
                 }
               }
             }
@@ -941,6 +941,65 @@
         }
       }
     },
+    "/tiers/thresholds": {
+      "get": {
+        "tags": [
+          "tiers"
+        ],
+        "summary": "List Tier Thresholds",
+        "description": "The global ladder, lowest band first - lets clients draw progress toward\nthe next sub-level and badge leaderboard rows without hardcoding seed.py's\nbands (which are still placeholders pending real usage data).",
+        "operationId": "list_tier_thresholds_tiers_thresholds_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "x-dev-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TierThresholdOut"
+                  },
+                  "title": "Response List Tier Thresholds Tiers Thresholds Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -1081,6 +1140,60 @@
         ],
         "title": "GymCreatedOut"
       },
+      "GymDetailOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "brand_color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand Color"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "join_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Join Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "city",
+          "brand_color",
+          "created_at"
+        ],
+        "title": "GymDetailOut",
+        "description": "GET /gyms/{id} shape - join_code is filled in only for that gym's\nadmins, so they can re-share it after creation; null for everyone else."
+      },
       "GymLeaderboardEntry": {
         "properties": {
           "rank": {
@@ -1114,49 +1227,6 @@
           "bar_total"
         ],
         "title": "GymLeaderboardEntry"
-      },
-      "GymOut": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "city": {
-            "type": "string",
-            "title": "City"
-          },
-          "brand_color": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Brand Color"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "city",
-          "brand_color",
-          "created_at"
-        ],
-        "title": "GymOut",
-        "description": "Public shape - deliberately excludes join_code so it can't be looked up\nby anyone who merely knows/guesses a gym's id; it's only handed back once,\nat creation, via GymCreatedOut."
       },
       "HTTPValidationError": {
         "properties": {
@@ -1458,6 +1528,28 @@
           "sub_level"
         ],
         "title": "TierOut"
+      },
+      "TierThresholdOut": {
+        "properties": {
+          "min_points": {
+            "type": "integer",
+            "title": "Min Points"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/Tier"
+          },
+          "sub_level": {
+            "type": "integer",
+            "title": "Sub Level"
+          }
+        },
+        "type": "object",
+        "required": [
+          "min_points",
+          "tier",
+          "sub_level"
+        ],
+        "title": "TierThresholdOut"
       },
       "UserCreate": {
         "properties": {

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import AuthenticatedUser, get_current_user
 from app.infra.db.orm import Exercise, Gym, Membership, MembershipRole, User, WeeklyExerciseBest
 from app.infra.db.session import get_db
-from app.models.gym import GymCreate, GymCreatedOut, GymOut
+from app.models.gym import GymCreate, GymCreatedOut, GymDetailOut
 from app.models.leaderboard import GymLeaderboardEntry, WeeklyLeaderboardEntry
 from app.services.leaderboards import get_gym_leaderboard
 from app.services.weekly_bests import get_current_week_start
@@ -56,16 +56,29 @@ def create_gym(
     )
 
 
-@router.get("/{gym_id}", response_model=GymOut)
+@router.get("/{gym_id}", response_model=GymDetailOut)
 def get_gym(
     gym_id: uuid.UUID,
-    _current_user: AuthenticatedUser = Depends(get_current_user),
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     gym = db.get(Gym, gym_id)
     if gym is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Gym not found")
-    return gym
+
+    is_admin = (
+        db.query(Membership)
+        .filter(
+            Membership.user_id == current_user.id,
+            Membership.gym_id == gym_id,
+            Membership.role == MembershipRole.admin,
+        )
+        .first()
+        is not None
+    )
+    detail = GymDetailOut.model_validate(gym)
+    detail.join_code = gym.join_code if is_admin else None
+    return detail
 
 
 @router.get("/{gym_id}/leaderboard", response_model=list[GymLeaderboardEntry])

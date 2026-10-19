@@ -17,13 +17,15 @@ export function JoinGymForm() {
           id="join_code"
           name="join_code"
           placeholder="ABCD1234"
-          className="uppercase tracking-widest"
+          autoComplete="off"
+          autoCapitalize="characters"
+          className="h-14 rounded-xl text-center font-mono text-2xl tracking-[0.3em] uppercase md:text-2xl"
           maxLength={8}
           required
         />
       </div>
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
-      <Button type="submit" disabled={pending} className="w-full">
+      <Button type="submit" size="xl" disabled={pending} className="w-full">
         {pending ? "Joining…" : "Join gym"}
       </Button>
     </form>

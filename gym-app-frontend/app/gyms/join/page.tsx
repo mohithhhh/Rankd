@@ -1,43 +1,53 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { hasSession } from "@/lib/auth/session";
 import { getMyProfile, getMyMemberships } from "@/lib/api/resources";
+import { AuthFrame } from "@/components/rankd/auth-frame";
 import { JoinGymForm } from "@/components/rankd/join-gym-form";
 import { CreateGymForm } from "@/components/rankd/create-gym-form";
 
-export default async function JoinGymPage() {
+export default async function JoinGymPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ add?: string }>;
+}) {
   if (!(await hasSession())) redirect("/login");
   if ((await getMyProfile()) === null) redirect("/onboarding");
-  if ((await getMyMemberships()).length > 0) redirect("/dashboard");
+  // ?add=1 is the "join another gym" path from the profile page; without it,
+  // anyone who already has a gym has finished setup and belongs on the dashboard.
+  const { add } = await searchParams;
+  const hasGym = (await getMyMemberships()).length > 0;
+  if (hasGym && add !== "1") redirect("/dashboard");
+
+  const trigger = "h-full rounded-full data-active:bg-raised data-active:text-tint";
 
   return (
-    <main className="flex flex-1 items-center justify-center px-4 py-16">
-      <Card className="w-full max-w-sm border-border/80">
-        <CardHeader>
-          <p className="text-sm font-medium tracking-wide text-primary uppercase">RankD</p>
-          <CardTitle className="text-2xl">Find your gym</CardTitle>
-          <CardDescription>Join with a code from a member, or start a new one.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="join">
-            <TabsList className="w-full">
-              <TabsTrigger value="join" className="flex-1">
-                Join with code
-              </TabsTrigger>
-              <TabsTrigger value="create" className="flex-1">
-                Create a gym
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="join" className="pt-4">
-              <JoinGymForm />
-            </TabsContent>
-            <TabsContent value="create" className="pt-4">
-              <CreateGymForm />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </main>
+    <AuthFrame
+      title={hasGym ? "Add a gym" : "Find your gym"}
+      description="Rankings are per gym. Join yours with the code from a member, or start one and invite the others."
+    >
+      <Tabs defaultValue="join" className="gap-5">
+        <TabsList className="h-11 w-full rounded-full bg-background p-1 ring-1 ring-border">
+          <TabsTrigger value="join" className={trigger}>
+            Join with code
+          </TabsTrigger>
+          <TabsTrigger value="create" className={trigger}>
+            Create a gym
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="join">
+          <JoinGymForm />
+        </TabsContent>
+        <TabsContent value="create">
+          <CreateGymForm />
+        </TabsContent>
+      </Tabs>
+      {hasGym && (
+        <Link href="/profile" className="text-center text-sm text-sky hover:text-tint hover:underline">
+          Back to profile
+        </Link>
+      )}
+    </AuthFrame>
   );
 }

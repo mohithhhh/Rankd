@@ -26,3 +26,10 @@ class GymOut(BaseModel):
 
 class GymCreatedOut(GymOut):
     join_code: str
+
+
+class GymDetailOut(GymOut):
+    """GET /gyms/{id} shape - join_code is filled in only for that gym's
+    admins, so they can re-share it after creation; null for everyone else."""
+
+    join_code: str | None = None

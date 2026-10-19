@@ -1,37 +1,28 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { api } from "@/lib/api/client";
+import { describeError } from "@/lib/api/errors";
 
-function describeError(error: unknown, fallback: string): string {
-  const detail = (error as { detail?: unknown } | undefined)?.detail;
-  if (typeof detail === "string") return detail;
-  if (Array.isArray(detail)) {
-    return detail.map((d) => (d as { msg?: string }).msg).filter(Boolean).join(", ") || fallback;
-  }
-  return fallback;
-}
-
-export type UpdateProfileState = { error: string } | { success: true } | undefined;
+export type ProfileState = { error?: string; saved?: boolean } | undefined;
 
 export async function updateProfileAction(
-  _prevState: UpdateProfileState,
+  _prevState: ProfileState,
   formData: FormData,
-): Promise<UpdateProfileState> {
+): Promise<ProfileState> {
   const username = String(formData.get("username") ?? "").trim();
   const bodyweightKg = Number(formData.get("bodyweight_kg"));
 
   if (!username) return { error: "Enter a username." };
-  if (!Number.isFinite(bodyweightKg) || bodyweightKg <= 0) {
-    return { error: "Enter a valid bodyweight." };
+  if (!Number.isFinite(bodyweightKg) || bodyweightKg < 20 || bodyweightKg > 400) {
+    return { error: "Enter your bodyweight in kg, between 20 and 400." };
   }
 
   const { error, response } = await api.PATCH("/users/me", {
     body: { username, bodyweight_kg: bodyweightKg },
   });
+  if (!response.ok) return { error: describeError(error, "Couldn't save your profile. Try again.") };
 
-  if (!response.ok) {
-    return { error: describeError(error, "Something went wrong.") };
-  }
-
-  return { success: true };
+  revalidatePath("/", "layout");
+  return { saved: true };
 }

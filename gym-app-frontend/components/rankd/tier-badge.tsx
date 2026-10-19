@@ -1,44 +1,30 @@
 import { cn } from "@/lib/utils";
-import type { components } from "@/lib/api/schema";
-
-type Tier = components["schemas"]["Tier"];
-
-const TIER_LABEL: Record<Tier, string> = {
-  bronze: "Bronze",
-  silver: "Silver",
-  gold: "Gold",
-  platinum: "Platinum",
-  diamond: "Diamond",
-  olympian: "Olympian",
-};
-
-const TIER_COLOR_VAR: Record<Tier, string> = {
-  bronze: "var(--tier-bronze)",
-  silver: "var(--tier-silver)",
-  gold: "var(--tier-gold)",
-  platinum: "var(--tier-platinum)",
-  diamond: "var(--tier-diamond)",
-  olympian: "var(--tier-olympian)",
-};
+import { bandLabel, TIER_COLOR, type Tier } from "@/lib/tiers";
 
 export function TierBadge({
   tier,
   subLevel,
-  size = "sm",
+  className,
 }: {
   tier: Tier;
   subLevel: number;
-  size?: "sm" | "lg";
+  className?: string;
 }) {
+  const color = TIER_COLOR[tier];
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full font-medium text-white",
-        size === "sm" ? "px-2.5 py-0.5 text-xs" : "px-4 py-1.5 text-base",
+        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+        className,
       )}
-      style={{ backgroundColor: TIER_COLOR_VAR[tier] }}
+      style={{
+        color,
+        borderColor: `color-mix(in srgb, ${color} 40%, transparent)`,
+        backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
+      }}
     >
-      {TIER_LABEL[tier]} {subLevel}
+      <span aria-hidden className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
+      {bandLabel({ tier, sub_level: subLevel })}
     </span>
   );
 }
