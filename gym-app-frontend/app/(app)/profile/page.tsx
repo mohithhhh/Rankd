@@ -28,6 +28,7 @@ export default async function ProfilePage() {
         <div className="min-w-0">
           <h1 className="truncate font-display text-4xl leading-none font-extrabold">{user.username}</h1>
           <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+          <p className="text-sm text-muted-foreground capitalize">{user.sex}</p>
         </div>
       </header>
 

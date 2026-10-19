@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireOnboardedUser } from "@/lib/auth/require-onboarded-user";
-import { getExercises, getMyLoggedSets } from "@/lib/api/resources";
+import { getExercises, getGymWithId, getMyLoggedSets } from "@/lib/api/resources";
 import { cn } from "@/lib/utils";
 import { describeSet, MUSCLE_GROUPS, points } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -32,12 +32,22 @@ export default async function HistoryPage({
 }: {
   searchParams: Promise<{ group?: string }>;
 }) {
-  await requireOnboardedUser();
+  const { memberships } = await requireOnboardedUser();
   const { group } = await searchParams;
   const activeGroup = MUSCLE_GROUPS.find((g) => g.id === group)?.id as MuscleGroup | undefined;
 
-  const [sets, exercises] = await Promise.all([getMyLoggedSets(), getExercises()]);
+  const [sets, exercises, gyms] = await Promise.all([
+    getMyLoggedSets(),
+    getExercises(),
+    // Gym names only matter when you train at more than one.
+    memberships.length > 1
+      ? Promise.all(
+          memberships.map(async (m) => [m.gym_id, (await getGymWithId(m.gym_id))?.name] as const),
+        )
+      : [],
+  ]);
   const byId = new Map(exercises.map((e) => [e.id, e]));
+  const gymNames = new Map(gyms);
 
   // Walk oldest to newest so "new best" means best at the time it was lifted.
   const marks = new Map<string, "first" | "best">();
@@ -127,6 +137,7 @@ export default async function HistoryPage({
                         </span>
                         <span className="text-sm text-muted-foreground tabular-nums">
                           {describeSet(set, exercise)}
+                          {gymNames.get(set.gym_id) && ` at ${gymNames.get(set.gym_id)}`}
                         </span>
                       </div>
                       {set.points !== null && (
